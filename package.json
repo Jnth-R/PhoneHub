@@ -1,0 +1,16 @@
+{
+  "name": "phonehub-connected-prototype",
+  "version": "1.0.0",
+  "description": "High-fidelity connected prototype simulator for PhoneHub customer e-commerce app.",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "phonehub",
+    "connected-prototype",
+    "interactive-simulator"
+  ],
+  "author": "Antigravity Codebase Assistant",
+  "license": "ISC"
+}
