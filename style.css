@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    PHONEHUB MASTER STYLESHEET
    Aesthetics: Rich dark luxury, HSL color tokens, glassmorphism, responsive
    ========================================================================== */
@@ -249,6 +249,13 @@ body {
   width: 100%;
 }
 
+.phone-navbar-courier {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-left: 34px;
+  padding-right: 34px;
+  column-gap: 10px;
+}
+
 .nav-item {
   display: flex;
   flex-direction: column;
@@ -276,6 +283,18 @@ body {
 .nav-item.active {
   color: var(--phone-nav-active);
   font-weight: 700;
+}
+
+.courier-nav-item {
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+}
+
+.courier-nav-item svg {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Special elevated Order tab in center */
@@ -2015,3 +2034,676 @@ body {
   height: 42px;
   border-radius: 12px;
 }
+
+/* ==========================================================================
+   OWNER / ADMIN DASHBOARD EXTENSIONS
+   ========================================================================== */
+.owner-dashboard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.owner-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.owner-stat-card {
+  background: #fff;
+  border-radius: var(--border-radius-md);
+  padding: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  border: 1px solid rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: var(--transition-smooth);
+}
+
+.owner-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.04);
+}
+
+.owner-stat-label {
+  font-size: 10px;
+  color: var(--text-phone-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.owner-stat-value {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-phone-primary);
+  font-family: var(--font-heading);
+}
+
+/* Sales Chart SVG Container */
+.owner-chart-container {
+  background: #fff;
+  border-radius: var(--border-radius-md);
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  border: 1px solid rgba(0,0,0,0.03);
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.chart-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-phone-primary);
+  font-family: var(--font-heading);
+}
+
+.chart-period {
+  font-size: 9px;
+  color: var(--text-phone-secondary);
+  background: #f2f3f6;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.svg-chart {
+  width: 100%;
+  height: 90px;
+  display: block;
+}
+
+/* Customer Management Table */
+.owner-table-wrapper {
+  background: #fff;
+  border-radius: var(--border-radius-md);
+  padding: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  border: 1px solid rgba(0,0,0,0.03);
+  overflow-x: auto;
+}
+
+.owner-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  text-align: left;
+}
+
+.owner-table th {
+  padding: 8px;
+  font-weight: 700;
+  color: var(--text-phone-secondary);
+  border-bottom: 1.5px solid #f2f3f6;
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+}
+
+.owner-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #f2f3f6;
+  color: var(--text-phone-primary);
+  vertical-align: middle;
+}
+
+.owner-table tr:last-child td {
+  border-bottom: none;
+}
+
+.customer-status-badge {
+  padding: 2px 6px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 700;
+  display: inline-block;
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition-smooth);
+}
+
+.customer-status-badge.active-status {
+  background: #e8f5e9;
+  color: var(--accent-green);
+}
+
+.customer-status-badge.inactive-status {
+  background: #ffebee;
+  color: var(--accent-red);
+}
+
+/* ==========================================================================
+   OWNER / ADMIN FINANCE VIEW
+   ========================================================================== */
+.finance-summary-box {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  color: #fff;
+  border-radius: var(--border-radius-lg);
+  padding: 20px;
+  box-shadow: 0 8px 24px rgba(42, 82, 152, 0.2);
+  margin-bottom: 16px;
+}
+
+.finance-summary-box h5 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.finance-summary-box h2 {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.finance-summary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  padding-top: 12px;
+}
+
+.finance-sub-stat h6 {
+  font-size: 9px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.finance-sub-stat p {
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   OWNER / ADMIN ADD PRODUCT VIEW
+   ========================================================================== */
+.add-product-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.photo-upload-placeholder {
+  width: 100%;
+  height: 120px;
+  border: 2px dashed rgba(0,0,0,0.1);
+  border-radius: var(--border-radius-md);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.photo-upload-placeholder:hover {
+  border-color: var(--accent-blue);
+  background: #fafafa;
+}
+
+.photo-upload-icon {
+  font-size: 24px;
+  margin-bottom: 6px;
+  color: var(--text-phone-muted);
+}
+
+.photo-upload-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-phone-secondary);
+}
+
+.photo-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-group label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-phone-primary);
+  text-transform: uppercase;
+}
+
+.form-input {
+  height: 38px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 12px;
+  outline: none;
+  background: #fff;
+  transition: var(--transition-smooth);
+}
+
+.form-input:focus {
+  border-color: var(--accent-blue);
+}
+
+.form-textarea {
+  height: 70px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  outline: none;
+  background: #fff;
+  resize: none;
+  transition: var(--transition-smooth);
+}
+
+.form-textarea:focus {
+  border-color: var(--accent-blue);
+}
+
+.photo-presets-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.photo-preset-btn {
+  flex: 1;
+  background: #fff;
+  border: 1.5px solid rgba(0,0,0,0.08);
+  border-radius: 10px;
+  padding: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.photo-preset-btn.active {
+  border-color: var(--accent-blue);
+  background: #eef5ff;
+  color: var(--accent-blue);
+}
+
+/* ==========================================================================
+   OWNER / ADMIN PRODUCTS VIEW
+   ========================================================================== */
+.owner-product-card {
+  background: #fff;
+  border-radius: var(--border-radius-md);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+  border: 1px solid rgba(0,0,0,0.02);
+  margin-bottom: 12px;
+}
+
+.owner-product-img {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  background: #f2f3f6;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.owner-product-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.owner-product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.owner-product-title {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.owner-product-price {
+  font-size: 11px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.owner-product-status {
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.owner-product-status.approved {
+  background: #e8f5e9;
+  color: var(--accent-green);
+}
+
+.owner-product-status.sold {
+  background: #f2f3f6;
+  color: var(--text-phone-secondary);
+}
+
+/* ==========================================================================
+   COURIER PROFILE & HOMEPAGE VIEWS
+   ========================================================================== */
+.courier-stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.courier-stat-box {
+  background: #fff;
+  border-radius: var(--border-radius-md);
+  padding: 14px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  border: 1px solid rgba(0,0,0,0.03);
+}
+
+.courier-stat-box span {
+  font-size: 9px;
+  color: var(--text-phone-secondary);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.courier-stat-box h3 {
+  font-size: 16px;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  margin-top: 4px;
+}
+
+.courier-vehicle-card {
+  background: #fff;
+  border-radius: var(--border-radius-md);
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  border: 1px solid rgba(0,0,0,0.03);
+  margin-bottom: 16px;
+}
+
+.courier-vehicle-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-phone-secondary);
+  margin-bottom: 8px;
+}
+
+.courier-vehicle-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.courier-vehicle-row span {
+  color: var(--text-phone-secondary);
+}
+
+.courier-vehicle-row strong {
+  font-weight: 700;
+  color: var(--text-phone-primary);
+}
+
+/* Availability Toggle Switch */
+.availability-toggle-wrapper {
+  background: #fff;
+  border-radius: var(--border-radius-md);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  border: 1px solid rgba(0,0,0,0.03);
+  margin-bottom: 20px;
+}
+
+.availability-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: var(--accent-green);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+/* Courier Delivery Timeline */
+.courier-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+  position: relative;
+  padding-left: 20px;
+}
+
+.courier-timeline::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: #eaeaea;
+}
+
+.timeline-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  cursor: pointer;
+}
+
+.timeline-bullet {
+  position: absolute;
+  left: -20px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #ccc;
+  z-index: 2;
+  transition: var(--transition-smooth);
+}
+
+.timeline-step.completed .timeline-bullet {
+  border-color: var(--accent-green);
+  background: var(--accent-green);
+}
+
+.timeline-step.active .timeline-bullet {
+  border-color: var(--accent-blue);
+  background: #fff;
+  box-shadow: 0 0 8px var(--accent-blue);
+}
+
+.timeline-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-phone-secondary);
+}
+
+.timeline-step.active .timeline-label {
+  color: var(--text-phone-primary);
+}
+
+.timeline-step.completed .timeline-label {
+  color: var(--accent-green);
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+/* ==========================================================================
+   LEAFLET REAL-WORLD MAP IN EMULATOR
+   ========================================================================== */
+.leaflet-map-bezel {
+  width: 100%;
+  height: 100%;
+  background: #f0f0f0;
+  z-index: 1;
+}
+
+/* Hide Leaflet control labels & keep zoom controls minimal */
+.leaflet-control-attribution {
+  display: none !important;
+}
+
+.leaflet-bar {
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom {
+  margin: 10px !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  width: 26px !important;
+  height: 26px !important;
+  line-height: 26px !important;
+  font-size: 14px !important;
+  background: #fff !important;
+  color: #000 !important;
+  font-weight: bold;
+}
+
+/* Custom Marker Styling */
+.map-pulse-marker {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  border: 2px solid #fff;
+  box-shadow: 0 0 10px var(--accent-blue);
+}
+
+.map-dest-marker {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  border: 2.5px solid #fff;
+  box-shadow: 0 0 10px var(--accent-green);
+}
+
+.map-courier-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: orange;
+  color: #fff;
+  font-size: 14px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 10px rgba(255,165,0,0.6);
+  animation: pulse-glow 1.5s infinite alternate;
+}
+
+/* Rounded, Centered Courier Action Buttons */
+.courier-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 85%;
+  max-width: 260px;
+  height: 42px;
+  margin: 16px auto;
+  border-radius: 21px;
+  font-weight: 700;
+  font-size: 12px;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  text-align: center;
+  transition: var(--transition-smooth);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.courier-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
+
