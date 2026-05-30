@@ -59,6 +59,9 @@ const PHOTO_PRESETS = {
   bronze: 'assets/Iphone17.png'
 };
 
+const DEFAULT_ADDRESS = "Jl. Mansion Valley No.8 - 22, Genitri, Tirtomoyo, Pakis, Malang, Jawa Timur 65154";
+const BLOCKED_WORDS = ['anjing', 'bangsat', 'babi', 'goblok', 'tolol', 'kontol', 'memek'];
+
 // --- REAL-WORLD LOCATION TRACKING COORDINATES (Malang Center to Pakis) ---
 const ROUTE_COORDINATES = [
   [-7.9568, 112.6189], // Malang Town Square / Warehouse (Mulai)
@@ -74,7 +77,7 @@ let state = {
   products: { ...INITIAL_PRODUCTS },
   cart: [],
   selectedCartItems: [],
-  address: "Jl. Mansion Valley No.8 - 22, Genitri, Tirtomoyo, Pakis, Malang, Jawa Timur 65154",
+  address: DEFAULT_ADDRESS,
   selectedProduct: null,
   selectedPresetPhoto: 'black', // for adding product mockup
 
@@ -171,6 +174,29 @@ function saveOrders() {
   }
 }
 
+function escapeHtml(text) {
+  return String(text)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function containsBlockedWord(text) {
+  const normalized = String(text).toLowerCase();
+  return BLOCKED_WORDS.some(word => normalized.includes(word));
+}
+
+function sanitizeUserText(text) {
+  let safeText = String(text);
+  BLOCKED_WORDS.forEach(word => {
+    const pattern = new RegExp(word, 'gi');
+    safeText = safeText.replace(pattern, '[teks disaring]');
+  });
+  return safeText;
+}
+
 function updateClock() {
   const now = new Date();
   const hours = String(now.getHours()).padStart(2, '0');
@@ -186,7 +212,7 @@ function logEvent(message, type = 'system') {
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const logLine = document.createElement('div');
   logLine.className = `log-line ${type}`;
-  logLine.innerHTML = `[${time}] [${type.toUpperCase()}]: ${message}`;
+  logLine.textContent = `[${time}] [${type.toUpperCase()}]: ${sanitizeUserText(message)}`;
   consoleEl.appendChild(logLine);
   consoleEl.scrollTop = consoleEl.scrollHeight;
 }
@@ -1318,9 +1344,10 @@ function renderChangeAddressScreen() {
 function saveAddressChange() {
   const newVal = document.getElementById('address-input-box').value;
   if (newVal.trim() !== '') {
-    state.address = newVal;
-    logEvent(`Shipping address updated to: ${newVal}`, 'customer');
-    triggerToast('Address Saved', 'Your address has been updated.', '🗺️');
+    const cleanAddress = containsBlockedWord(newVal) ? DEFAULT_ADDRESS : escapeHtml(sanitizeUserText(newVal.trim()));
+    state.address = cleanAddress;
+    logEvent(`Shipping address updated to: ${cleanAddress}`, 'customer');
+    triggerToast('Address Saved', containsBlockedWord(newVal) ? 'Address reset to the default safe address.' : 'Your address has been updated.', 'OK');
     switchTab('settings');
   } else {
     triggerToast('Address Error', 'Address cannot be blank!', '❌');
@@ -1337,7 +1364,7 @@ function renderChatScreen() {
   history.forEach(msg => {
     messagesHtml += `
       <div class="chat-message-bubble ${msg.sender}">
-        ${msg.text}
+        ${escapeHtml(sanitizeUserText(msg.text))}
         ${msg.productLink ? `
           <div class="chat-product-box ${msg.sender === 'outgoing' ? 'dark' : ''}">
             <img src="${state.products[msg.productLink].image}">
@@ -1423,19 +1450,21 @@ function handleSendChatMessage(event) {
 function sendUserMessage(text) {
   const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const partner = state.activeChatPartner;
+  const safeText = sanitizeUserText(text);
   
-  state.chats[partner].push({ sender: 'outgoing', text, time });
-  logEvent(`Customer sent chat to ${partner.toUpperCase()}: "${text}"`, 'customer');
+  state.chats[partner].push({ sender: 'outgoing', text: safeText, time });
+  logEvent(`Customer sent chat to ${partner.toUpperCase()}: "${safeText}"`, 'customer');
   renderScreen('chat');
   
   let reply = 'Tentu kak, kami akan segera memproses pertanyaannya.';
-  if (text.toLowerCase().includes('iphone 16')) {
+  const lowerText = safeText.toLowerCase();
+  if (lowerText.includes('iphone 16')) {
     reply = 'Stok iPhone 16 Pro Max sisa 1 unit lagi kak! Silakan checkout.';
-  } else if (text.toLowerCase().includes('detail iphone 13')) {
+  } else if (lowerText.includes('detail iphone 13')) {
     reply = 'iPhone 13 new unit original garansi iBox 1 tahun lengkap segel box.';
-  } else if (text.toLowerCase().includes('instant')) {
+  } else if (lowerText.includes('instant')) {
     reply = 'Ya! Pengiriman bisa menggunakan Eddy Express, sampai dalam waktu 1 jam.';
-  } else if (text.toLowerCase().includes('eddy') || text.toLowerCase().includes('kurir')) {
+  } else if (lowerText.includes('eddy') || lowerText.includes('kurir')) {
     reply = 'Halo kak, saya sedang merapikan paket motor saya.';
   }
   
@@ -2443,3 +2472,4 @@ function progressOrderState() {
   }
   renderScreen(state.currentTab);
 }
+
