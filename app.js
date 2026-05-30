@@ -531,8 +531,8 @@ function renderHomeScreen() {
     <!-- Search Input Bar -->
     <div class="search-bar-wrapper">
       <svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      <input type="text" placeholder="Search product..." onkeydown="handleHomeSearchKey(event)" onfocus="this.select()">
-      <div class="filter-btn" onclick="triggerToast('Filter applied', 'Showing only best conditions units', '🔍')">
+      <input id="home-search-input" type="text" placeholder="Search product..." oninput="handleHomeSearchTyping(this.value)" onkeydown="handleHomeSearchKey(event)" onfocus="this.select()">
+      <div class="filter-btn" onclick="submitHomeSearch()">
         <svg style="width:16px;height:16px;color:var(--text-phone-secondary);" viewBox="0 0 24 24"><path fill="currentColor" d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
       </div>
     </div>
@@ -558,8 +558,23 @@ function renderHomeScreen() {
 
 function handleHomeSearchKey(event) {
   if (event.key === 'Enter') {
-    switchTab('search', event.target.value.trim());
+    event.preventDefault();
+    submitHomeSearch();
   }
+}
+
+function handleHomeSearchTyping(value) {
+  const query = value.trim();
+  clearTimeout(state.homeSearchTimer);
+  if (query.length < 2) return;
+  state.homeSearchTimer = setTimeout(() => {
+    switchTab('search', query);
+  }, 350);
+}
+
+function submitHomeSearch() {
+  const input = document.getElementById('home-search-input');
+  switchTab('search', input ? input.value.trim() : '');
 }
 
 function renderDetailScreen(product) {
@@ -625,9 +640,7 @@ function renderSearchScreen(query = '') {
   let searchResultsHtml = '';
   const searchVal = query.toLowerCase().trim();
 
-  const matched = Object.values(state.products).filter(p => 
-    p.status === 'available' && p.title.toLowerCase().includes(searchVal)
-  );
+  const matched = getSearchMatches(searchVal);
 
   if (searchVal !== '' && matched.length > 0) {
     matched.forEach(product => {
@@ -694,9 +707,7 @@ function handleSearchInputChange(val) {
   if (!box) return;
   
   const searchVal = val.toLowerCase().trim();
-  const matched = Object.values(state.products).filter(p => 
-    p.status === 'available' && p.title.toLowerCase().includes(searchVal)
-  );
+  const matched = getSearchMatches(searchVal);
 
   if (searchVal === '') {
     box.innerHTML = `
@@ -739,6 +750,21 @@ function handleSearchInputChange(val) {
 
 function triggerSearchText(text) {
   renderScreen('search', text);
+}
+
+function getSearchMatches(searchVal) {
+  if (!searchVal) return [];
+  return Object.values(state.products).filter(product => {
+    if (product.status !== 'available') return false;
+    const searchableText = [
+      product.title,
+      product.type,
+      product.color,
+      product.storage,
+      product.priceStr
+    ].join(' ').toLowerCase();
+    return searchableText.includes(searchVal);
+  });
 }
 
 function renderBagScreen() {
@@ -989,6 +1015,7 @@ function renderOrderScreen() {
         <span class="empty-box-icon">📦</span>
         <h3>No Active Orders</h3>
         <p>You have no ongoing deliveries. Visit the Home tab to place an order!</p>
+        <button class="purchase-btn purchase-btn-compact" style="margin-top:14px;" onclick="switchTab('order-history')">Lihat Order History</button>
       </div>
     `;
   }
@@ -1873,6 +1900,11 @@ function courierAction(action) {
       );
     }
 
+    if (state.ordersList.length > 0) {
+      state.ordersList[0].status = 'Delivered';
+      saveOrders();
+    }
+
     logEvent('Courier Eddy successfully delivered package. Awaiting Customer feedback.', 'courier');
     triggerToast('Package Delivered', 'iPhone successfully delivered! Client is filling out ratings.', '🏁');
     
@@ -1985,7 +2017,8 @@ function setOwnerChartPeriod(period) {
 }
 
 function renderOwnerSalesChart() {
-  const totalRevenue = state.financeSummary.revenue;
+  const orderRevenue = state.ordersList.reduce((sum, order) => sum + order.total, 0);
+  const totalRevenue = Math.max(state.financeSummary.revenue, orderRevenue, 1);
   const monthly = [
     { label: 'Jan', value: Math.round(totalRevenue * 0.08) },
     { label: 'Feb', value: Math.round(totalRevenue * 0.11) },
