@@ -73,6 +73,7 @@ const ROUTE_COORDINATES = [
 let state = {
   products: { ...INITIAL_PRODUCTS },
   cart: [],
+  selectedCartItems: [],
   address: "Jl. Mansion Valley No.8 - 22, Genitri, Tirtomoyo, Pakis, Malang, Jawa Timur 65154",
   selectedProduct: null,
   selectedPresetPhoto: 'black', // for adding product mockup
@@ -708,6 +709,7 @@ function triggerSearchText(text) {
 }
 
 function renderBagScreen() {
+  syncCartSelection();
   if (state.cart.length === 0) {
     return `
       <div class="screen-header">
@@ -722,14 +724,22 @@ function renderBagScreen() {
   }
   
   let itemsListHtml = '';
-  let subtotal = 0;
+  let cartSubtotal = 0;
+  let selectedSubtotal = 0;
+  const selectedIds = new Set(state.selectedCartItems);
   
   state.cart.forEach(item => {
     const itemCost = item.product.price * item.quantity;
-    subtotal += itemCost;
+    const isSelected = selectedIds.has(item.product.id);
+    cartSubtotal += itemCost;
+    if (isSelected) selectedSubtotal += itemCost;
     
     itemsListHtml += `
-      <div class="bag-item-card">
+      <div class="bag-item-card ${isSelected ? 'selected' : ''}">
+        <label class="bag-select-control" title="Pilih item ini">
+          <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleCartSelection('${item.product.id}', this.checked)">
+          <span></span>
+        </label>
         <div class="bag-item-img">
           <img src="${item.product.image}" alt="${item.product.title}">
         </div>
@@ -741,6 +751,7 @@ function renderBagScreen() {
             <button class="qty-btn" onclick="updateQty('${item.product.id}', -1)">-</button>
             <span class="qty-val">${item.quantity}</span>
             <button class="qty-btn" onclick="updateQty('${item.product.id}', 1)">+</button>
+            <button class="buy-one-btn" onclick="purchaseSingleItem('${item.product.id}')">Beli ini</button>
           </div>
         </div>
         <button class="delete-item-btn" onclick="removeItemFromCart('${item.product.id}')">
@@ -750,15 +761,26 @@ function renderBagScreen() {
     `;
   });
   
-  const formattedSubtotal = `Rp.${subtotal.toLocaleString('id-ID')},00`;
-  const shippingCost = 15000;
-  const formattedShipping = `Rp.${shippingCost.toLocaleString('id-ID')},00`;
-  const grandTotal = `Rp.${(subtotal + shippingCost).toLocaleString('id-ID')},00`;
+  const selectedCount = state.selectedCartItems.length;
+  const allSelected = selectedCount === state.cart.length;
+  const formattedCartSubtotal = `Rp.${cartSubtotal.toLocaleString('id-ID')},00`;
+  const formattedSelectedSubtotal = `Rp.${selectedSubtotal.toLocaleString('id-ID')},00`;
+  const activeShipping = selectedCount > 0 ? 15000 : 0;
+  const formattedShipping = `Rp.${activeShipping.toLocaleString('id-ID')},00`;
+  const grandTotal = `Rp.${(selectedSubtotal + activeShipping).toLocaleString('id-ID')},00`;
 
   return `
     <div class="screen-header">
       <h3 class="screen-title" style="margin-left:0;text-align:left;">Bag</h3>
       <span style="font-size:12px;color:var(--accent-red);font-weight:700;cursor:pointer;" onclick="clearCart()">Delete All</span>
+    </div>
+
+    <div class="bag-selection-toolbar">
+      <label class="bag-select-all">
+        <input type="checkbox" ${allSelected ? 'checked' : ''} onchange="toggleSelectAllCart(this.checked)">
+        <span>Pilih semua produk</span>
+      </label>
+      <strong>${selectedCount}/${state.cart.length} dipilih</strong>
     </div>
 
     <div class="bag-items-list">
@@ -778,8 +800,12 @@ function renderBagScreen() {
 
     <div class="checkout-summary-box">
       <div class="summary-row">
-        <span>Subtotal</span>
-        <span>${formattedSubtotal}</span>
+        <span>Subtotal Bag</span>
+        <span>${formattedCartSubtotal}</span>
+      </div>
+      <div class="summary-row">
+        <span>Subtotal Dipilih</span>
+        <span>${formattedSelectedSubtotal}</span>
       </div>
       <div class="summary-row">
         <span>Delivery (Eddy Express)</span>
@@ -791,8 +817,31 @@ function renderBagScreen() {
       </div>
     </div>
 
-    <button class="purchase-btn purchase-btn-compact" onclick="placeOrder()">Purchase</button>
+    <button class="purchase-btn purchase-btn-compact" ${selectedCount === 0 ? 'disabled style="background:#999;cursor:not-allowed;"' : ''} onclick="placeOrder()">Purchase Selected</button>
   `;
+}
+
+function syncCartSelection() {
+  const cartIds = state.cart.map(item => item.product.id);
+  state.selectedCartItems = (state.selectedCartItems || []).filter(id => cartIds.includes(id));
+}
+
+function toggleCartSelection(prodId, checked) {
+  const selected = new Set(state.selectedCartItems || []);
+  if (checked) selected.add(prodId);
+  else selected.delete(prodId);
+  state.selectedCartItems = [...selected];
+  renderScreen('bag');
+}
+
+function toggleSelectAllCart(checked) {
+  state.selectedCartItems = checked ? state.cart.map(item => item.product.id) : [];
+  renderScreen('bag');
+}
+
+function purchaseSingleItem(prodId) {
+  state.selectedCartItems = [prodId];
+  placeOrder();
 }
 
 function addItemToBag(prodId) {
@@ -807,6 +856,7 @@ function addItemToBag(prodId) {
     triggerToast('Limit Reached', 'Only 1 unit of this listing can be purchased.', '⚠️');
   } else {
     state.cart.push({ product, quantity: 1 });
+    state.selectedCartItems = [...new Set([...(state.selectedCartItems || []), prodId])];
     logEvent(`Customer added ${product.title} to Bag.`, 'customer');
     triggerToast('Added to Bag', `${product.title} added to your shopping list!`, '👜');
   }
@@ -820,7 +870,10 @@ function instantPurchase(prodId) {
     triggerToast('Out of Stock', 'This product is already sold out!', '❌');
     return;
   }
-  state.cart = [{ product, quantity: 1 }]; // clear other and buy instant
+  if (!state.cart.some(item => item.product.id === prodId)) {
+    state.cart.push({ product, quantity: 1 });
+  }
+  state.selectedCartItems = [prodId];
   switchTab('bag');
 }
 
@@ -834,6 +887,7 @@ function updateQty(prodId, delta) {
     }
     if (existing.quantity <= 0) {
       state.cart = state.cart.filter(item => item.product.id !== prodId);
+      state.selectedCartItems = (state.selectedCartItems || []).filter(id => id !== prodId);
     }
   }
   updateBadges();
@@ -842,34 +896,43 @@ function updateQty(prodId, delta) {
 
 function removeItemFromCart(prodId) {
   state.cart = state.cart.filter(item => item.product.id !== prodId);
+  state.selectedCartItems = (state.selectedCartItems || []).filter(id => id !== prodId);
   updateBadges();
   renderScreen('bag');
 }
 
 function clearCart() {
   state.cart = [];
+  state.selectedCartItems = [];
   updateBadges();
   renderScreen('bag');
 }
 
 function placeOrder() {
   if (state.cart.length === 0) return;
+  syncCartSelection();
+  const selectedIds = new Set(state.selectedCartItems);
+  const selectedItems = state.cart.filter(item => selectedIds.has(item.product.id));
+  if (selectedItems.length === 0) {
+    triggerToast('Pilih Produk', 'Pilih minimal 1 produk untuk dibeli.', '!');
+    return;
+  }
   
   // Set products to SOLD (disappears from listing)
-  state.cart.forEach(item => {
+  selectedItems.forEach(item => {
     state.products[item.product.id].status = 'sold';
   });
 
   state.orderStatus = 'packing';
   state.orderRating = 0;
-  state.orderItems = state.cart.map(item => ({ product: item.product, quantity: 1 }));
+  state.orderItems = selectedItems.map(item => ({ product: item.product, quantity: item.quantity }));
   
   // Compute Total
-  const totalAmount = state.orderItems.reduce((sum, item) => sum + item.product.price, 0) + 15000;
+  const totalAmount = state.orderItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0) + 15000;
   
   // Append to Orders List
   const newOrderId = 'PH-' + (1000 + Math.floor(Math.random() * 9000));
-  const orderedItemsLabel = state.orderItems.map(item => `${item.product.title} (x1)`).join(', ');
+  const orderedItemsLabel = state.orderItems.map(item => `${item.product.title} (x${item.quantity})`).join(', ');
   state.ordersList.unshift({
     id: newOrderId,
     customer: 'Jonathan Richard',
@@ -888,7 +951,8 @@ function placeOrder() {
     { sender: 'incoming', text: 'Thank you for your order, Jonathan! We are currently PACKING your iPhone unit. We will assign Eddy to deliver it shortly.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
   );
   
-  state.cart = []; // clear cart
+  state.cart = state.cart.filter(item => !selectedIds.has(item.product.id));
+  state.selectedCartItems = state.cart.map(item => item.product.id);
   updateBadges();
   
   triggerToast('Order Confirmed', 'Your iPhone order is now being packed by the seller!', '🎉');
@@ -983,8 +1047,8 @@ function renderOrderScreen() {
         </div>
         <div style="min-width:0; flex:1;">
           <h5 style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.product.title}</h5>
-          <p style="font-size:10px;color:var(--text-phone-secondary);">${item.product.type}, ${item.product.color}</p>
-          <span style="font-size:11px;font-weight:800;">${item.product.priceStr}</span>
+          <p style="font-size:10px;color:var(--text-phone-secondary);">${item.product.type}, ${item.product.color} | Qty: ${item.quantity}</p>
+          <span style="font-size:11px;font-weight:800;">Rp.${(item.product.price * item.quantity).toLocaleString('id-ID')},00</span>
         </div>
       </div>
     `;
@@ -1739,7 +1803,7 @@ function courierAction(action) {
     
     // Increment Revenue & log transaction in Owner ledger
     if (state.orderItems.length > 0) {
-      const orderVal = state.orderItems.reduce((s, it) => s + it.product.price, 0);
+      const orderVal = state.orderItems.reduce((s, it) => s + (it.product.price * it.quantity), 0);
       state.financeSummary.revenue += orderVal;
       state.financeSummary.expense += 15000;
       state.financeSummary.balance = state.financeSummary.revenue - state.financeSummary.expense;
@@ -2098,7 +2162,7 @@ function renderOwnerOrdersScreen() {
           <span style="font-size:8.5px; font-weight:800; color:orange;">WAITING DISPATCH</span>
         </div>
         <p style="font-size:10px; color:var(--text-phone-secondary); margin-top:4px;">Customer: Jonathan Richard</p>
-        <p style="font-size:10px; color:var(--text-phone-secondary);">Item: ${state.orderItems.map(it => it.product.title).join(', ')}</p>
+        <p style="font-size:10px; color:var(--text-phone-secondary);">Item: ${state.orderItems.map(it => `${it.product.title} (x${it.quantity})`).join(', ')}</p>
         
         <div style="margin-top:10px; font-size:10px; font-weight:700;">
           Status Terkini: <span style="text-transform:uppercase; color:var(--accent-blue);">${state.orderStatus}</span>

@@ -897,15 +897,65 @@ body {
   margin-bottom: 24px;
 }
 
+.bag-selection-toolbar {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.04);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+}
+
+.bag-select-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-phone-primary);
+  cursor: pointer;
+}
+
+.bag-selection-toolbar strong {
+  font-size: 10px;
+  color: var(--accent-blue);
+  white-space: nowrap;
+}
+
 .bag-item-card {
   background: #fff;
   border-radius: var(--border-radius-md);
-  padding: 12px;
+  padding: 12px 38px 12px 12px;
   display: flex;
   gap: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.02);
   position: relative;
   align-items: center;
+  border: 1.5px solid transparent;
+}
+
+.bag-item-card.selected {
+  border-color: rgba(0, 122, 255, 0.28);
+  background: #f8fbff;
+}
+
+.bag-select-control {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.bag-select-control input,
+.bag-select-all input {
+  accent-color: var(--accent-blue);
 }
 
 .bag-item-img {
@@ -927,6 +977,7 @@ body {
 
 .bag-item-info {
   flex: 1;
+  min-width: 0;
 }
 
 .bag-item-title {
@@ -945,8 +996,9 @@ body {
 .bag-item-qty-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-top: 6px;
+  flex-wrap: wrap;
 }
 
 .qty-btn {
@@ -966,6 +1018,18 @@ body {
 .qty-val {
   font-size: 12px;
   font-weight: 700;
+}
+
+.buy-one-btn {
+  height: 24px;
+  border: none;
+  border-radius: 8px;
+  background: var(--text-phone-primary);
+  color: #fff;
+  padding: 0 9px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .delete-item-btn {
