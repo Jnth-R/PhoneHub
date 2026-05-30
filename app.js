@@ -89,10 +89,7 @@ let state = {
   orderRating: 0,
   orderItems: [],
   ownerChartPeriod: 'monthly',
-  ordersList: [
-    { id: 'PH-1024', customer: 'Jonathan Richard', items: 'iPhone 13 (x1)', total: 8299999, status: 'Delivered', rating: 5, date: '25 May' },
-    { id: 'PH-1025', customer: 'Angga', items: 'iPhone 16 Pro Max (x1)', total: 16500000, status: 'Delivered', rating: 4, date: '26 May' }
-  ],
+  ordersList: [],
   
   // Customer List Database (Admin Page)
   customers: [
@@ -157,10 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function loadSavedOrders() {
   try {
-    const savedOrders = localStorage.getItem('phonehub_orders');
-    if (savedOrders) {
-      state.ordersList = JSON.parse(savedOrders);
-    }
+    localStorage.removeItem('phonehub_orders');
+    state.ordersList = [];
   } catch (err) {
     console.warn('Failed to load saved orders', err);
   }
