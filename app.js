@@ -427,7 +427,7 @@ function updateBadges() {
   const chatBadge = document.getElementById('chat-badge');
   const deliveryBadge = document.getElementById('delivery-badge');
   
-  const cartTotalQty = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartTotalQty = state.cart.length;
   if (bagBadge) {
     if (cartTotalQty > 0) {
       bagBadge.style.display = 'block';
@@ -729,7 +729,7 @@ function renderBagScreen() {
   const selectedIds = new Set(state.selectedCartItems);
   
   state.cart.forEach(item => {
-    const itemCost = item.product.price * item.quantity;
+    const itemCost = item.product.price;
     const isSelected = selectedIds.has(item.product.id);
     cartSubtotal += itemCost;
     if (isSelected) selectedSubtotal += itemCost;
@@ -747,10 +747,7 @@ function renderBagScreen() {
           <h4 class="bag-item-title">${item.product.title}</h4>
           <span class="bag-item-price">Rp.${itemCost.toLocaleString('id-ID')},00</span>
           
-          <div class="bag-item-qty-row">
-            <button class="qty-btn" onclick="updateQty('${item.product.id}', -1)">-</button>
-            <span class="qty-val">${item.quantity}</span>
-            <button class="qty-btn" onclick="updateQty('${item.product.id}', 1)">+</button>
+          <div class="bag-item-action-row">
             <button class="buy-one-btn" onclick="purchaseSingleItem('${item.product.id}')">Beli ini</button>
           </div>
         </div>
@@ -852,8 +849,8 @@ function addItemToBag(prodId) {
   }
   const existing = state.cart.find(item => item.product.id === prodId);
   if (existing) {
-    existing.quantity = 1; // 1 product buy system, maximum is 1
-    triggerToast('Limit Reached', 'Only 1 unit of this listing can be purchased.', '⚠️');
+    state.selectedCartItems = [...new Set([...(state.selectedCartItems || []), prodId])];
+    triggerToast('Already in Bag', 'Produk ini sudah ada di Bag.', '!');
   } else {
     state.cart.push({ product, quantity: 1 });
     state.selectedCartItems = [...new Set([...(state.selectedCartItems || []), prodId])];
@@ -875,23 +872,6 @@ function instantPurchase(prodId) {
   }
   state.selectedCartItems = [prodId];
   switchTab('bag');
-}
-
-function updateQty(prodId, delta) {
-  const existing = state.cart.find(item => item.product.id === prodId);
-  if (existing) {
-    existing.quantity += delta;
-    if (existing.quantity > 1) {
-      existing.quantity = 1;
-      triggerToast('Limit Reached', 'Only 1 unit of this listing can be purchased.', '⚠️');
-    }
-    if (existing.quantity <= 0) {
-      state.cart = state.cart.filter(item => item.product.id !== prodId);
-      state.selectedCartItems = (state.selectedCartItems || []).filter(id => id !== prodId);
-    }
-  }
-  updateBadges();
-  renderScreen('bag');
 }
 
 function removeItemFromCart(prodId) {
@@ -925,14 +905,14 @@ function placeOrder() {
 
   state.orderStatus = 'packing';
   state.orderRating = 0;
-  state.orderItems = selectedItems.map(item => ({ product: item.product, quantity: item.quantity }));
+  state.orderItems = selectedItems.map(item => ({ product: item.product, quantity: 1 }));
   
   // Compute Total
-  const totalAmount = state.orderItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0) + 15000;
+  const totalAmount = state.orderItems.reduce((sum, item) => sum + item.product.price, 0) + 15000;
   
   // Append to Orders List
   const newOrderId = 'PH-' + (1000 + Math.floor(Math.random() * 9000));
-  const orderedItemsLabel = state.orderItems.map(item => `${item.product.title} (x${item.quantity})`).join(', ');
+  const orderedItemsLabel = state.orderItems.map(item => item.product.title).join(', ');
   state.ordersList.unshift({
     id: newOrderId,
     customer: 'Jonathan Richard',
@@ -1047,8 +1027,8 @@ function renderOrderScreen() {
         </div>
         <div style="min-width:0; flex:1;">
           <h5 style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.product.title}</h5>
-          <p style="font-size:10px;color:var(--text-phone-secondary);">${item.product.type}, ${item.product.color} | Qty: ${item.quantity}</p>
-          <span style="font-size:11px;font-weight:800;">Rp.${(item.product.price * item.quantity).toLocaleString('id-ID')},00</span>
+          <p style="font-size:10px;color:var(--text-phone-secondary);">${item.product.type}, ${item.product.color}</p>
+          <span style="font-size:11px;font-weight:800;">${item.product.priceStr}</span>
         </div>
       </div>
     `;
@@ -1803,7 +1783,7 @@ function courierAction(action) {
     
     // Increment Revenue & log transaction in Owner ledger
     if (state.orderItems.length > 0) {
-      const orderVal = state.orderItems.reduce((s, it) => s + (it.product.price * it.quantity), 0);
+      const orderVal = state.orderItems.reduce((s, it) => s + it.product.price, 0);
       state.financeSummary.revenue += orderVal;
       state.financeSummary.expense += 15000;
       state.financeSummary.balance = state.financeSummary.revenue - state.financeSummary.expense;
@@ -2162,7 +2142,7 @@ function renderOwnerOrdersScreen() {
           <span style="font-size:8.5px; font-weight:800; color:orange;">WAITING DISPATCH</span>
         </div>
         <p style="font-size:10px; color:var(--text-phone-secondary); margin-top:4px;">Customer: Jonathan Richard</p>
-        <p style="font-size:10px; color:var(--text-phone-secondary);">Item: ${state.orderItems.map(it => `${it.product.title} (x${it.quantity})`).join(', ')}</p>
+        <p style="font-size:10px; color:var(--text-phone-secondary);">Item: ${state.orderItems.map(it => it.product.title).join(', ')}</p>
         
         <div style="margin-top:10px; font-size:10px; font-weight:700;">
           Status Terkini: <span style="text-transform:uppercase; color:var(--accent-blue);">${state.orderStatus}</span>

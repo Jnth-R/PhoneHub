@@ -993,31 +993,12 @@ body {
   color: var(--text-phone-primary);
 }
 
-.bag-item-qty-row {
+.bag-item-action-row {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-top: 6px;
   flex-wrap: wrap;
-}
-
-.qty-btn {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  border: 1px solid rgba(0,0,0,0.1);
-  background: #fff;
-  font-weight: 700;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.qty-val {
-  font-size: 12px;
-  font-weight: 700;
 }
 
 .buy-one-btn {
