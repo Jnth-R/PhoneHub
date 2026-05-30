@@ -2158,6 +2158,32 @@ body {
   border-radius: 20px;
 }
 
+.chart-period-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f2f3f6;
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.chart-period-toggle button {
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-phone-secondary);
+  cursor: pointer;
+}
+
+.chart-period-toggle button.active {
+  background: #fff;
+  color: var(--accent-blue);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
 .svg-chart {
   width: 100%;
   height: 90px;

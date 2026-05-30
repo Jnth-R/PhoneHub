@@ -85,6 +85,7 @@ let state = {
   orderStatus: 'none',      // none | packing | pickup | delivery | delivered
   orderRating: 0,
   orderItems: [],
+  ownerChartPeriod: 'monthly',
   ordersList: [
     { id: 'PH-1024', customer: 'Jonathan Richard', items: 'iPhone 13 (x1)', total: 8299999, status: 'Delivered', rating: 5, date: '25 May' },
     { id: 'PH-1025', customer: 'Angga', items: 'iPhone 16 Pro Max (x1)', total: 16500000, status: 'Delivered', rating: 4, date: '26 May' }
@@ -145,10 +146,30 @@ let state = {
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
   logEvent('PhoneHub Connected Prototype Engine ready.', 'system');
+  loadSavedOrders();
   updateClock();
   setInterval(updateClock, 60000);
   setRole('customer'); // start as customer
 });
+
+function loadSavedOrders() {
+  try {
+    const savedOrders = localStorage.getItem('phonehub_orders');
+    if (savedOrders) {
+      state.ordersList = JSON.parse(savedOrders);
+    }
+  } catch (err) {
+    console.warn('Failed to load saved orders', err);
+  }
+}
+
+function saveOrders() {
+  try {
+    localStorage.setItem('phonehub_orders', JSON.stringify(state.ordersList));
+  } catch (err) {
+    console.warn('Failed to save orders', err);
+  }
+}
 
 function updateClock() {
   const now = new Date();
@@ -230,7 +251,7 @@ function renderNavbar() {
   if (!navbar) return;
 
   // Decide if navbar should be hidden
-  const hideNavbarOn = ['detail', 'settings', 'change-address', 'courier-deliveries-detail', 'courier-ride'];
+  const hideNavbarOn = ['detail', 'settings', 'change-address', 'order-history', 'courier-deliveries-detail', 'courier-ride'];
   if (hideNavbarOn.includes(state.currentTab)) {
     navbar.style.display = 'none';
     return;
@@ -362,6 +383,9 @@ function renderScreen(screen, payload) {
     case 'order':
       html = renderOrderScreen();
       break;
+    case 'order-history':
+      html = renderOrderHistoryScreen();
+      break;
     case 'chat':
       html = renderChatScreen();
       break;
@@ -415,6 +439,9 @@ function renderScreen(screen, payload) {
   }
   if (screen === 'chat') {
     scrollChatToBottom();
+  }
+  if (screen === 'search') {
+    setTimeout(() => document.getElementById('active-search-input')?.focus(), 0);
   }
   
   updateBadges();
@@ -504,7 +531,7 @@ function renderHomeScreen() {
     <!-- Search Input Bar -->
     <div class="search-bar-wrapper">
       <svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      <input type="text" placeholder="Search product..." onfocus="switchTab('search')" readonly>
+      <input type="text" placeholder="Search product..." onkeydown="handleHomeSearchKey(event)" onfocus="this.select()">
       <div class="filter-btn" onclick="triggerToast('Filter applied', 'Showing only best conditions units', '🔍')">
         <svg style="width:16px;height:16px;color:var(--text-phone-secondary);" viewBox="0 0 24 24"><path fill="currentColor" d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
       </div>
@@ -527,6 +554,12 @@ function renderHomeScreen() {
       ${productsHtml}
     </div>
   `;
+}
+
+function handleHomeSearchKey(event) {
+  if (event.key === 'Enter') {
+    switchTab('search', event.target.value.trim());
+  }
 }
 
 function renderDetailScreen(product) {
@@ -647,7 +680,7 @@ function renderSearchScreen(query = '') {
 
     <div class="search-bar-wrapper">
       <svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-      <input type="text" id="active-search-input" value="${query}" placeholder="Search product..." oninput="handleSearchInputChange(this.value)">
+      <input type="text" id="active-search-input" value="${query}" placeholder="Search product..." oninput="handleSearchInputChange(this.value)" onkeydown="handleSearchEnter(event)">
     </div>
 
     <div id="search-results-box">
@@ -818,6 +851,12 @@ function renderBagScreen() {
   `;
 }
 
+function handleSearchEnter(event) {
+  if (event.key === 'Enter') {
+    handleSearchInputChange(event.target.value);
+  }
+}
+
 function syncCartSelection() {
   const cartIds = state.cart.map(item => item.product.id);
   state.selectedCartItems = (state.selectedCartItems || []).filter(id => cartIds.includes(id));
@@ -920,8 +959,9 @@ function placeOrder() {
     total: totalAmount - 15000,
     status: 'Pending',
     rating: 0,
-    date: 'Today'
+    date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
   });
+  saveOrders();
 
   logEvent(`Order ${newOrderId} placed successfully! State: PACKING. Admin preparing order.`, 'customer');
   
@@ -1079,6 +1119,43 @@ function openCourierChat() {
   switchTab('chat');
 }
 
+function renderOrderHistoryScreen() {
+  const historyItems = state.ordersList.map(order => {
+    const ratingText = order.rating > 0 ? `${order.rating}/5` : 'Belum dinilai';
+    return `
+      <div class="owner-product-card" style="margin-bottom:10px; align-items:flex-start;">
+        <div style="flex:1; min-width:0;">
+          <div style="display:flex; justify-content:space-between; gap:8px;">
+            <strong style="font-size:12px;">${order.id}</strong>
+            <span class="owner-product-status ${order.status === 'Delivered' ? 'approved' : 'sold'}" style="font-size:8px;">${order.status}</span>
+          </div>
+          <p style="font-size:10px; color:var(--text-phone-secondary); margin-top:4px;">${order.items}</p>
+          <p style="font-size:10px; color:var(--text-phone-secondary);">Tanggal: ${order.date} | Rating: ${ratingText}</p>
+          <strong style="font-size:11px; display:block; margin-top:4px;">Rp ${order.total.toLocaleString('id-ID')}</strong>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="screen-header">
+      <button class="back-btn" onclick="switchTab('profile')">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        <span>Back</span>
+      </button>
+      <h3 class="screen-title">Order History</h3>
+    </div>
+
+    ${historyItems || `
+      <div class="bag-empty-state">
+        <span style="font-size:48px;">ðŸ“¦</span>
+        <h3>Belum Ada Riwayat</h3>
+        <p>Pesanan yang sudah dibuat akan tersimpan di sini.</p>
+      </div>
+    `}
+  `;
+}
+
 function renderStars() {
   let starsHtml = '';
   for(let i=1; i<=5; i++) {
@@ -1111,6 +1188,7 @@ function submitRating() {
   if (state.ordersList.length > 0) {
     state.ordersList[0].rating = state.orderRating;
     state.ordersList[0].status = 'Delivered';
+    saveOrders();
   }
   
   state.orderStatus = 'none';
@@ -1134,7 +1212,7 @@ function renderProfileScreen() {
 
     <div class="menu-section-title">Order History</div>
     <div class="menu-list">
-      <div class="menu-item" onclick="switchTab('order')">
+      <div class="menu-item" onclick="switchTab('order-history')">
         <div class="menu-item-icon">
           <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 8H5c-1.1 0-2 .9-2 2v9c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-9c0-1.1-.9-2-2-2zm-7 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm7-11H5c-1.1 0-2 .9-2 2h18c0-1.1-.9-2-2-2z"/></svg>
         </div>
@@ -1820,6 +1898,7 @@ function renderOwnerDashboardScreen() {
   
   // Format revenue to IDR
   const formattedRevenue = 'Rp ' + state.financeSummary.revenue.toLocaleString('id-ID');
+  const chartHtml = renderOwnerSalesChart();
 
   // Customer Management rows
   let clientRowsHtml = '';
@@ -1870,30 +1949,13 @@ function renderOwnerDashboardScreen() {
       <!-- Sales Chart SVG visual curves -->
       <div class="owner-chart-container">
         <div class="chart-header">
-          <span class="chart-title">Sales Chart 22-26</span>
-          <span class="chart-period">Monthly</span>
+          <span class="chart-title">${state.ownerChartPeriod === 'monthly' ? 'Sales Chart Bulanan' : 'Sales Chart Tahunan'}</span>
+          <div class="chart-period-toggle">
+            <button class="${state.ownerChartPeriod === 'monthly' ? 'active' : ''}" onclick="setOwnerChartPeriod('monthly')">Monthly</button>
+            <button class="${state.ownerChartPeriod === 'yearly' ? 'active' : ''}" onclick="setOwnerChartPeriod('yearly')">Yearly</button>
+          </div>
         </div>
-        <svg class="svg-chart" viewBox="0 0 300 90">
-          <defs>
-            <linearGradient id="chart-glow" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="var(--accent-blue)" stop-opacity="0.3"/>
-              <stop offset="100%" stop-color="var(--accent-blue)" stop-opacity="0.0"/>
-            </linearGradient>
-          </defs>
-          <!-- Grid lines -->
-          <line x1="0" y1="15" x2="300" y2="15" stroke="#f2f3f6" stroke-width="1"/>
-          <line x1="0" y1="45" x2="300" y2="45" stroke="#f2f3f6" stroke-width="1"/>
-          <line x1="0" y1="75" x2="300" y2="75" stroke="#f2f3f6" stroke-width="1"/>
-          
-          <!-- Curve shape paths -->
-          <path d="M 0,80 Q 50,70 100,55 T 200,40 T 300,10 L 300,90 L 0,90 Z" fill="url(#chart-glow)"/>
-          <path d="M 0,80 Q 50,70 100,55 T 200,40 T 300,10" fill="none" stroke="var(--accent-blue)" stroke-width="2.5" stroke-linecap="round"/>
-          
-          <!-- Markers -->
-          <circle cx="100" cy="55" r="4" fill="var(--accent-blue)" stroke="#fff" stroke-width="1.5"/>
-          <circle cx="200" cy="40" r="4" fill="var(--accent-blue)" stroke="#fff" stroke-width="1.5"/>
-          <circle cx="300" cy="10" r="4" fill="var(--accent-cyan)" stroke="#fff" stroke-width="1.5"/>
-        </svg>
+        ${chartHtml}
       </div>
 
       <!-- Customer table -->
@@ -1914,6 +1976,53 @@ function renderOwnerDashboardScreen() {
         </table>
       </div>
     </div>
+  `;
+}
+
+function setOwnerChartPeriod(period) {
+  state.ownerChartPeriod = period;
+  renderScreen('owner-dashboard');
+}
+
+function renderOwnerSalesChart() {
+  const totalRevenue = state.financeSummary.revenue;
+  const monthly = [
+    { label: 'Jan', value: Math.round(totalRevenue * 0.08) },
+    { label: 'Feb', value: Math.round(totalRevenue * 0.11) },
+    { label: 'Mar', value: Math.round(totalRevenue * 0.16) },
+    { label: 'Apr', value: Math.round(totalRevenue * 0.21) },
+    { label: 'Mei', value: Math.max(totalRevenue, 1) }
+  ];
+  const yearly = [
+    { label: '2022', value: Math.round(totalRevenue * 0.35) },
+    { label: '2023', value: Math.round(totalRevenue * 0.55) },
+    { label: '2024', value: Math.round(totalRevenue * 0.72) },
+    { label: '2025', value: Math.round(totalRevenue * 0.86) },
+    { label: '2026', value: Math.max(totalRevenue, 1) }
+  ];
+  const data = state.ownerChartPeriod === 'yearly' ? yearly : monthly;
+  const maxValue = Math.max(...data.map(d => d.value), 1);
+  const barWidth = 34;
+  const gap = 24;
+  const bars = data.map((d, idx) => {
+    const height = Math.max(8, Math.round((d.value / maxValue) * 58));
+    const x = 18 + idx * (barWidth + gap);
+    const y = 70 - height;
+    return `
+      <g>
+        <rect x="${x}" y="${y}" width="${barWidth}" height="${height}" rx="6" fill="var(--accent-blue)"></rect>
+        <text x="${x + barWidth / 2}" y="86" text-anchor="middle" font-size="9" fill="#6b7280">${d.label}</text>
+      </g>
+    `;
+  }).join('');
+
+  return `
+    <svg class="svg-chart" viewBox="0 0 300 92">
+      <line x1="0" y1="70" x2="300" y2="70" stroke="#f2f3f6" stroke-width="1"/>
+      <line x1="0" y1="42" x2="300" y2="42" stroke="#f2f3f6" stroke-width="1"/>
+      <line x1="0" y1="14" x2="300" y2="14" stroke="#f2f3f6" stroke-width="1"/>
+      ${bars}
+    </svg>
   `;
 }
 
