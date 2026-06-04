@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhoneHub - Interactive Connected Prototype</title>
+  <!-- Google Fonts: Inter for UI, Outfit for clean headings -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Leaflet CSS for real-world maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Background Ambient Glows -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="app-container">
+    
+    <!-- LEFT COLUMN: Mobile Device Emulator -->
+    <div class="emulator-column">
+      <div class="device-bezel">
+        <div class="device-speaker"></div>
+        <div class="device-camera"></div>
+        <div class="device-screen">
+          
+          <!-- Phone Status Bar -->
+          <div class="phone-status-bar">
+            <span class="status-time" id="live-time">14:04</span>
+            <div class="status-icons">
+              <!-- Network Strength Signal -->
+              <svg class="icon-signal" viewBox="0 0 24 24"><path fill="currentColor" d="M2 22h20V2zM20 20H6.83L20 6.83z"/></svg>
+              <!-- Wifi Icon -->
+              <svg class="icon-wifi" viewBox="0 0 24 24"><path fill="currentColor" d="M12 21l-12-12c4.4-4.4 11.6-4.4 16 0zm-8.8-10.8l8.8 8.8 8.8-8.8c-2.9-2.9-7.7-2.9-10.6 0z"/></svg>
+              <!-- Battery Icon -->
+              <div class="status-battery">
+                <div class="battery-level" style="width: 88%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Toast Notification (Slide Down) -->
+          <div id="phone-toast" class="phone-toast">
+            <div class="toast-icon"></div>
+            <div class="toast-content">
+              <div class="toast-title">Notification</div>
+              <div class="toast-desc">Message content here</div>
+            </div>
+          </div>
+
+          <!-- DYNAMIC SCREEN CONTAINER (Rendered via JS) -->
+          <div id="phone-content" class="phone-screen-content">
+            <!-- Screen templates injected here dynamically -->
+          </div>
+
+          <!-- Phone Bottom Navigation Bar -->
+          <div class="phone-navbar" id="phone-navbar">
+            <div class="nav-item active" data-tab="home" onclick="switchTab('home')">
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+              <span>Home</span>
+            </div>
+            <div class="nav-item" data-tab="chat" onclick="switchTab('chat')">
+              <div class="badge-dot" id="chat-badge"></div>
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+              <span>Chat</span>
+            </div>
+            <!-- Elevated Center Button: Order -->
+            <div class="nav-item nav-order-btn" data-tab="order" onclick="switchTab('order')">
+              <div class="nav-order-icon-wrapper">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8.7 13.3-3.6-3.6 1.4-1.4 2.2 2.2 5.6-5.6 1.4 1.4-7 7z"/></svg>
+              </div>
+              <span style="margin-top: 18px;">Order</span>
+            </div>
+            <div class="nav-item" data-tab="bag" onclick="switchTab('bag')">
+              <div class="badge-count" id="bag-badge" style="display: none;">0</div>
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17 18c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2zM7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm-1.64-4.25l.03-.12H18.5c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.37-.66-.11-1.48-.87-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7l1.1-2z"/></svg>
+              <span>Bag</span>
+            </div>
+            <div class="nav-item" data-tab="profile" onclick="switchTab('profile')">
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+              <span>Profile</span>
+            </div>
+          </div>
+
+          <!-- Bottom Home Indicator Bar (iOS style) -->
+          <div class="phone-home-indicator"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Simulator & Prototype Control Dashboard -->
+    <div class="simulator-column">
+      <div class="control-card">
+        <div class="control-header">
+          <div class="pulse-indicator"></div>
+          <h2>PhoneHub Connected Simulator</h2>
+        </div>
+        
+        <p class="control-intro">
+          This panel connects all the screens from your Figma design. You can interactively trigger events and switch roles to see how the system updates live!
+        </p>
+
+        <!-- Role Switcher -->
+        <div class="control-section">
+          <h3>Active Role Switcher</h3>
+          <p class="section-desc">Switching roles changes the phone emulator view or processes background logic.</p>
+          <div class="role-selector">
+            <button class="role-btn active" id="btn-role-customer" onclick="setRole('customer')">
+              <div class="role-icon"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-6 1.57-6 3.5V20h12v-2.5c0-1.93-2.69-3.5-6-3.5z"/></svg></div>
+              <div class="role-label">Customer</div>
+            </button>
+            <button class="role-btn" id="btn-role-courier" onclick="setRole('courier')">
+              <div class="role-icon"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 7h-2V5c0-1.1-.9-2-2-2H4C2.9 3 2 3.9 2 5v10c0 1.1.9 2 2 2 .35 1.16 1.42 2 2.69 2s2.34-.84 2.69-2h5.24c.35 1.16 1.42 2 2.69 2s2.34-.84 2.69-2H21c.55 0 1-.45 1-1v-5l-3-4zM6.69 17.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm10.62 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zM17 12V8.5h1.5L20.2 12H17z"/></svg></div>
+              <div class="role-label">Courier (Eddy)</div>
+            </button>
+            <button class="role-btn" id="btn-role-owner" onclick="setRole('owner')">
+              <div class="role-icon"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 10v10h16V10L12 4 4 10zm3 2h10v6H7v-6zm2-7h6v2H9V5z"/></svg></div>
+              <div class="role-label">Owner (Admin)</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Simulation Quick Controls -->
+        <div class="control-section">
+          <h3>Simulation Actions</h3>
+          <div class="action-grid">
+            <button class="action-btn" onclick="triggerSimulatorAction('add-item')">
+              <span> Add Custom Cart Item</span>
+            </button>
+            <button class="action-btn" onclick="triggerSimulatorAction('advance-order')">
+              <span> Progress Order State</span>
+            </button>
+            <button class="action-btn" onclick="triggerSimulatorAction('receive-chat')">
+              <span> Receive Auto Message</span>
+            </button>
+            <button class="action-btn" onclick="triggerSimulatorAction('price-drop')">
+              <span> Drop iPhone 16 Price</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Order Stage Info Card (Updates dynamically) -->
+        <div class="control-section" id="order-simulator-card">
+          <h3>Active Order Status Dashboard</h3>
+          <div class="status-summary-box">
+            <div class="status-step-indicator">
+              <span class="step-dot active" id="dot-packing">Packing</span>
+              <span class="step-dot" id="dot-pickup">Pickup</span>
+              <span class="step-dot" id="dot-delivery">Delivery</span>
+              <span class="step-dot" id="dot-delivered">Delivered</span>
+            </div>
+            <div id="order-sim-details" class="order-sim-details">
+              <em>No active order placed yet. Shop in the Home tab and checkout to trigger real-time order progression!</em>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Activity Logger -->
+        <div class="control-section">
+          <div class="section-header-row">
+            <h3> System Log Monitor</h3>
+            <button class="clear-log-btn" onclick="clearLogs()">Clear</button>
+          </div>
+          <div class="log-console" id="log-console">
+            <div class="log-line system">[SYSTEM]: PhoneHub interactive simulator loaded.</div>
+            <div class="log-line system">[SYSTEM]: Active role: Customer (Jonathan Richard).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS for real-world maps -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="app.js"></script>
+</body>
+</html>
+
+
+
+
+
+
