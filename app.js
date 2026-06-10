@@ -79,6 +79,7 @@ let state = {
   selectedCartItems: [],
   address: DEFAULT_ADDRESS,
   selectedProduct: null,
+  selectedOrderId: null,
   selectedPresetPhoto: 'black', // for adding product mockup
 
   activeRole: 'customer',   // customer | courier | owner
@@ -169,6 +170,44 @@ function saveOrders() {
   }
 }
 
+function formatOrderMoney(value) {
+  return `Rp ${Number(value || 0).toLocaleString('id-ID')}`;
+}
+
+function buildOrderItemDetails(orderItems) {
+  return orderItems.map(item => ({
+    id: item.product.id,
+    title: item.product.title,
+    type: item.product.type,
+    color: item.product.color,
+    storage: item.product.storage,
+    condition: item.product.condition,
+    warranty: item.product.warranty,
+    image: item.product.image,
+    price: item.product.price,
+    priceStr: item.product.priceStr,
+    quantity: item.quantity || 1
+  }));
+}
+
+function getOrderById(orderId) {
+  return state.ordersList.find(order => order.id === orderId) || state.ordersList[0] || null;
+}
+
+function getOrderSubtotal(order) {
+  if (typeof order.subtotal === 'number') return order.subtotal;
+  if (typeof order.total === 'number') return order.total;
+  return (order.itemDetails || []).reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+}
+
+function getOrderShipping(order) {
+  return typeof order.shippingFee === 'number' ? order.shippingFee : 15000;
+}
+
+function getOrderGrandTotal(order) {
+  return typeof order.grandTotal === 'number' ? order.grandTotal : getOrderSubtotal(order) + getOrderShipping(order);
+}
+
 function escapeHtml(text) {
   return String(text)
     .replaceAll('&', '&amp;')
@@ -255,6 +294,9 @@ function setRole(role) {
 // --- DYNAMIC TAB NAVIGATION AND NAVBAR RENDERING ---
 function switchTab(tabName, payload = null) {
   state.currentTab = tabName;
+  if (tabName === 'order-receipt') {
+    state.selectedOrderId = payload;
+  }
   
   if (tabName !== 'detail') {
     state.selectedProduct = null;
@@ -272,7 +314,7 @@ function renderNavbar() {
   if (!navbar) return;
 
   // Decide if navbar should be hidden
-  const hideNavbarOn = ['detail', 'settings', 'change-address', 'order-history', 'courier-deliveries-detail', 'courier-ride'];
+  const hideNavbarOn = ['detail', 'settings', 'change-address', 'order-history', 'order-receipt', 'courier-deliveries-detail', 'courier-ride'];
   if (hideNavbarOn.includes(state.currentTab)) {
     navbar.style.display = 'none';
     return;
@@ -406,6 +448,9 @@ function renderScreen(screen, payload) {
       break;
     case 'order-history':
       html = renderOrderHistoryScreen();
+      break;
+    case 'order-receipt':
+      html = renderOrderReceiptScreen(payload);
       break;
     case 'chat':
       html = renderChatScreen();
@@ -609,11 +654,17 @@ function renderDetailScreen(product) {
   const cartButtonsHtml = product.status === 'sold'
     ? ''
     : `
-      <div class="icon-action-btn" onclick="openProductChat('${product.id}')">
-        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v-2zm4-6H6V6h12v2z"/></svg>
+      <div class="detail-action-item" onclick="openProductChat('${product.id}')">
+        <div class="icon-action-btn">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v-2zm4-6H6V6h12v2z"/></svg>
+        </div>
+        <span>Chat</span>
       </div>
-      <div class="icon-action-btn" onclick="addItemToBag('${product.id}')">
-        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.21 9l-4.38-6.56c-.19-.28-.51-.42-.83-.42-.32 0-.64.14-.83.43L6.79 9H2c-.55 0-1 .45-1 1 0 .09.01.18.04.27l2.54 9.27c.23.84 1 1.46 1.88 1.46h13.08c.88 0 1.65-.62 1.88-1.46l2.54-9.27L23 10c0-.55-.45-1-1-1h-4.79zM9 9l3-4.5L15 9H9z"/></svg>
+      <div class="detail-action-item" onclick="addItemToBag('${product.id}')">
+        <div class="icon-action-btn">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.21 9l-4.38-6.56c-.19-.28-.51-.42-.83-.42-.32 0-.64.14-.83.43L6.79 9H2c-.55 0-1 .45-1 1 0 .09.01.18.04.27l2.54 9.27c.23.84 1 1.46 1.88 1.46h13.08c.88 0 1.65-.62 1.88-1.46l2.54-9.27L23 10c0-.55-.45-1-1-1h-4.79zM9 9l3-4.5L15 9H9z"/></svg>
+        </div>
+        <span>Bag</span>
       </div>
     `;
 
@@ -994,7 +1045,9 @@ function placeOrder() {
   state.orderItems = selectedItems.map(item => ({ product: item.product, quantity: 1 }));
   
   // Compute Total
-  const totalAmount = state.orderItems.reduce((sum, item) => sum + item.product.price, 0) + 15000;
+  const subtotalAmount = state.orderItems.reduce((sum, item) => sum + item.product.price, 0);
+  const shippingFee = 15000;
+  const totalAmount = subtotalAmount + shippingFee;
   
   // Append to Orders List
   const newOrderId = 'PH-' + (1000 + Math.floor(Math.random() * 9000));
@@ -1002,8 +1055,18 @@ function placeOrder() {
   state.ordersList.unshift({
     id: newOrderId,
     customer: 'Jonathan Richard',
+    phone: '08122344178',
+    address: state.address,
+    courier: state.courier.name,
+    courierPhone: state.courier.phone,
+    courierVehicle: `${state.courier.vehicle} - ${state.courier.plate}`,
     items: orderedItemsLabel,
-    total: totalAmount - 15000,
+    itemDetails: buildOrderItemDetails(state.orderItems),
+    subtotal: subtotalAmount,
+    shippingFee,
+    grandTotal: totalAmount,
+    total: subtotalAmount,
+    paymentMethod: 'Transfer Bank',
     status: 'Pending',
     rating: 0,
     date: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -1171,7 +1234,7 @@ function renderOrderHistoryScreen() {
   const historyItems = state.ordersList.map(order => {
     const ratingText = order.rating > 0 ? `${order.rating}/5` : 'Belum dinilai';
     return `
-      <div class="owner-product-card" style="margin-bottom:10px; align-items:flex-start;">
+      <div class="owner-product-card history-order-card" onclick="switchTab('order-receipt', '${order.id}')">
         <div style="flex:1; min-width:0;">
           <div style="display:flex; justify-content:space-between; gap:8px;">
             <strong style="font-size:12px;">${order.id}</strong>
@@ -1201,6 +1264,103 @@ function renderOrderHistoryScreen() {
         <p>Pesanan yang sudah dibuat akan tersimpan di sini.</p>
       </div>
     `}
+  `;
+}
+
+function renderOrderReceiptScreen(orderId) {
+  const order = getOrderById(orderId || state.selectedOrderId);
+  const backTarget = state.activeRole === 'owner'
+    ? 'owner-orders'
+    : state.activeRole === 'courier'
+      ? 'courier-history'
+      : 'order-history';
+
+  if (!order) {
+    return `
+      <div class="screen-header">
+        <button class="back-btn" onclick="switchTab('${backTarget}')">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          <span>Back</span>
+        </button>
+        <h3 class="screen-title">Detail Nota</h3>
+      </div>
+      <div class="bag-empty-state">
+        <h3>Nota Tidak Ditemukan</h3>
+        <p>Data pembelian belum tersedia untuk ditampilkan.</p>
+      </div>
+    `;
+  }
+
+  const itemDetails = order.itemDetails && order.itemDetails.length
+    ? order.itemDetails
+    : [{ title: order.items, type: 'Produk PhoneHub', color: '-', storage: '-', condition: '-', warranty: '-', price: getOrderSubtotal(order), quantity: 1 }];
+
+  const receiptItems = itemDetails.map(item => `
+    <div class="receipt-item-row">
+      ${item.image ? `<img src="${item.image}" alt="${item.title}">` : `<div class="receipt-item-placeholder"></div>`}
+      <div>
+        <strong>${item.title}</strong>
+        <span>${item.type || '-'} | ${item.color || '-'}</span>
+        <span>Storage: ${item.storage || '-'} | Kondisi: ${item.condition || '-'}</span>
+        <span>Garansi: ${item.warranty || '-'}</span>
+      </div>
+      <b>${formatOrderMoney((item.price || 0) * (item.quantity || 1))}</b>
+    </div>
+  `).join('');
+
+  const subtotal = getOrderSubtotal(order);
+  const shipping = getOrderShipping(order);
+  const grandTotal = getOrderGrandTotal(order);
+  const ratingText = order.rating > 0 ? `${order.rating}/5` : 'Belum dinilai';
+
+  return `
+    <div class="screen-header">
+      <button class="back-btn" onclick="switchTab('${backTarget}')">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        <span>Back</span>
+      </button>
+      <h3 class="screen-title">Detail Nota</h3>
+    </div>
+
+    <div class="receipt-card">
+      <div class="receipt-head">
+        <div>
+          <span>Invoice PhoneHub</span>
+          <strong>${order.id}</strong>
+        </div>
+        <span class="owner-product-status ${order.status === 'Delivered' ? 'approved' : 'sold'}">${order.status}</span>
+      </div>
+
+      <div class="receipt-info-grid">
+        <div><span>Tanggal</span><strong>${order.date || '-'}</strong></div>
+        <div><span>Pembeli</span><strong>${order.customer || 'Jonathan Richard'}</strong></div>
+        <div><span>No. HP</span><strong>${order.phone || '08122344178'}</strong></div>
+        <div><span>Pembayaran</span><strong>${order.paymentMethod || 'Transfer Bank'}</strong></div>
+        <div><span>Kurir</span><strong>${order.courier || state.courier.name}</strong></div>
+        <div><span>Kendaraan</span><strong>${order.courierVehicle || `${state.courier.vehicle} - ${state.courier.plate}`}</strong></div>
+      </div>
+
+      <div class="receipt-section">
+        <h4>Alamat Pengiriman</h4>
+        <p>${order.address || state.address}</p>
+      </div>
+
+      <div class="receipt-section">
+        <h4>Produk Dibeli</h4>
+        ${receiptItems}
+      </div>
+
+      <div class="receipt-total-box">
+        <div><span>Subtotal Produk</span><strong>${formatOrderMoney(subtotal)}</strong></div>
+        <div><span>Ongkir Kurir</span><strong>${formatOrderMoney(shipping)}</strong></div>
+        <div><span>Total Bayar</span><strong>${formatOrderMoney(grandTotal)}</strong></div>
+      </div>
+
+      <div class="receipt-note">
+        <strong>Catatan Status</strong>
+        <p>Pesanan ${order.id} berstatus ${order.status}. Rating pelanggan: ${ratingText}. Nota ini bisa dipakai oleh customer, owner, dan kurir untuk melihat rincian pembelian.</p>
+      </div>
+    </div>
   `;
 }
 
@@ -1853,7 +2013,7 @@ function renderCourierHistoryScreen() {
     completed.forEach(o => {
       const starRating = o.rating > 0 ? '⭐'.repeat(o.rating) : 'Belum dinilai';
       historyHtml += `
-        <div class="owner-product-card" style="margin-bottom:10px;">
+        <div class="owner-product-card history-order-card" onclick="switchTab('order-receipt', '${o.id}')">
           <div style="flex:1;">
             <div style="display:flex; justify-content:space-between;">
               <strong style="font-size:12px;">ID: ${o.id}</strong>
@@ -2298,13 +2458,14 @@ function renderOwnerProductsScreen() {
 function renderOwnerOrdersScreen() {
   let pendingHtml = '';
   let completedHtml = '';
+  const activeOrder = state.ordersList[0] || null;
   
   // Dynamic order cards
   if (state.orderStatus !== 'none' && state.orderStatus !== 'delivered') {
     pendingHtml = `
-      <div class="order-tracker-card" style="border-left: 4px solid var(--accent-gold); margin-top:8px;">
+      <div class="order-tracker-card history-order-card" style="border-left: 4px solid var(--accent-gold); margin-top:8px;" ${activeOrder ? `onclick="switchTab('order-receipt', '${activeOrder.id}')"` : ''}>
         <div style="display:flex; justify-content:space-between;">
-          <strong style="font-size:12px;">ID: PH-7758</strong>
+          <strong style="font-size:12px;">ID: ${activeOrder ? activeOrder.id : 'PH-7758'}</strong>
           <span style="font-size:8.5px; font-weight:800; color:orange;">WAITING DISPATCH</span>
         </div>
         <p style="font-size:10px; color:var(--text-phone-secondary); margin-top:4px;">Customer: Jonathan Richard</p>
@@ -2315,7 +2476,7 @@ function renderOwnerOrdersScreen() {
         </div>
 
         ${state.orderStatus === 'packing' ? `
-          <button class="purchase-btn" style="width:100%; margin-top:12px; background:purple;" onclick="ownerAction('dispatch')">Serahkan ke Kurir Eddy</button>
+          <button class="purchase-btn" style="width:100%; margin-top:12px; background:purple;" onclick="event.stopPropagation(); ownerAction('dispatch')">Serahkan ke Kurir Eddy</button>
         ` : `
           <p style="font-size:9.5px; color:var(--text-phone-secondary); font-style:italic; margin-top:8px;">Kurir Eddy sedang mengantarkan paket...</p>
         `}
@@ -2330,9 +2491,10 @@ function renderOwnerOrdersScreen() {
   }
 
   // Completed history
-  state.ordersList.forEach(o => {
+  const completedOrders = state.ordersList.filter(o => o.status === 'Delivered');
+  completedOrders.forEach(o => {
     completedHtml += `
-      <div class="owner-product-card" style="margin-bottom:8px; align-items:flex-start;">
+      <div class="owner-product-card history-order-card" onclick="switchTab('order-receipt', '${o.id}')">
         <div style="flex:1;">
           <div style="display:flex; justify-content:space-between; width:100%;">
             <strong style="font-size:11px;">ID: ${o.id}</strong>
@@ -2345,6 +2507,13 @@ function renderOwnerOrdersScreen() {
       </div>
     `;
   });
+  if (!completedHtml) {
+    completedHtml = `
+      <div style="text-align:center; padding:24px; background:#fff; border-radius:12px;">
+        <p style="font-size:11px; color:var(--text-phone-secondary);">Belum ada pesanan selesai</p>
+      </div>
+    `;
+  }
 
   return `
     <div class="screen-header">
